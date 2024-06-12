@@ -1,0 +1,47 @@
+/**
+ * Vertically micro-coded control unit for multi-cycle implementation 
+ * of the Larc ISA
+ */
+
+CHIP CU {
+
+    IN opcode[4];
+    OUT out1[16], out2[5];
+
+    PARTS:
+    //next state chip
+    AddressSelectLogic(opcode = opcode, addCtl[0] = addCtl0, addCtl[1] = addCtl1, INCin = StateOut,
+                   out = ASLout);
+
+    //state reg
+    STATE(in[0..4] = ASLout, load = true, out[0..4] = StateOut);
+
+    //control rom
+    ROM32K(address[0..4] = StateOut, 
+           out[0] = addCtl0, out[1] = addCtl1,
+           out[2..5] = outE,
+           out[6] = out1[0],
+           out[7] = out1[1],
+           out[8] = out1[2],
+           out[9] = out1[3],
+           out[10] = out1[4],
+           out[11] = out1[5],
+           out[12] = out1[6],
+           out[13] = out1[7],
+           out[14] = out1[8],
+           out[15] = out1[9]);
+    
+    //decoder
+    DMux16Way(in = true, sel = outE, 
+              a = out1[10],
+              b = out1[11],
+              c = out1[12],
+              d = out1[13],
+              e = out1[14],
+              f = out1[15],
+              g = out2[0],
+              h = out2[1],
+              i = out2[2],
+              j = out2[3],
+              k = out2[4]);
+}   

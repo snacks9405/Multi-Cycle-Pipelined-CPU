@@ -1,0 +1,16 @@
+/**
+ * LIMM sign extension module
+ */
+
+CHIP SignExtend {
+
+    IN LIMM[8];
+    OUT out[16];
+
+    PARTS:
+    Mux16(a[0..7] = LIMM[0..7], out[0..6] = limmPartial, out[7] = msb, 
+          sel = false);
+    Mux16(a[8..15] = false, a[0..6] = limmPartial, a[7] = msb,
+          b[8..15] = true,  b[0..6] = limmPartial, b[7] = msb,
+          out = out, sel = msb);
+}

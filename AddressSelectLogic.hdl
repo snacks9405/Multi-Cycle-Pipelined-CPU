@@ -1,0 +1,32 @@
+/**
+ * Address select logic for multi-cycle implementation of the larc ISA
+ */
+
+CHIP AddressSelectLogic {
+    IN opcode[4], addCtl[2], INCin[5];
+    OUT out[5];
+
+    PARTS:
+
+    //dispatch rom
+    Mux16Way16(a[1] = true, 
+               b[2] = true,
+               g[1..2] = true,
+               h[3] = true,
+               i[1] = true, i[3] = true,
+               j[0..1] = true, j[3] = true,
+               k[2..3] = true,
+               l[0] = true, l[2..3] = true,
+               m[1..3] = true,
+               n[0] = true, n[4] = true,
+               o[0..1] = true, o[4] = true,
+               p[2] = true, p[4] = true,
+               sel = opcode, out[0..4] = DRtoMux);
+
+    //next state logic
+    Mux4Way16(a = INCout, b[0..4] = DRtoMux, d[2] = true, d[4] = true, sel = addCtl,
+              out[0..4] = out);
+
+    //incrementer
+    Inc16(in[0..4] = INCin, out = INCout);
+}

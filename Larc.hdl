@@ -1,0 +1,126 @@
+//Alex Rodriguez and Nick Miller
+
+/**
+ * Larc computer - Multi-cycle implementation of Larc ISA
+ * bugs : na
+ */
+
+CHIP Larc {
+
+
+    PARTS:
+    //PC reg
+    PC(in = branchOut, load = pcCtrl, out = PCout, inc = false, reset = false);
+
+    //Msrc
+    Mux16(a = PCout, b = ALUoutputOut, out[0..11] = msrcOut, sel = Msrcsel);
+
+    //M reg
+    RAM4K(in = rd2out, address = msrcOut, load = MWritesel, out = Mout);
+
+    //MDR reg
+    MDR(in = Mout, load = MDRwritesel, out = MDRout);
+
+    //IR reg
+    IR(in = Mout, load = IRwritesel, out[0..3] = rc, out[4..7] = rb, 
+       out[8..11] = ra, out[12..15] = opcode);
+
+    //Sign Extend TOP --- discrete chip kept ra,rb,rc intact for readability.  
+    SignExtend(LIMM[0..3] = rc, LIMM[4..7] = rb, out = seTOPout);
+
+    //Li Mux
+    Mux16(a[0..7] = false, a[8..11] = rc, a[12..15] = rb,
+          b = seTOPout, out = LIout, sel = LIsel);
+
+    //RFwd Mux
+    Mux4Way16(a = LIout, b = PCout, c = MDRout, d = ALUoutputOut, 
+              out = RFwdout, sel[0] = RFwdsel0, sel[1] = RFwdsel1);
+
+    //LW Mux
+    Mux4(a = ra, b = rc, out[0..2] = seMidval, out[3] = seMidmsb, sel = LWsel);
+
+    //mid se Mux
+    Mux16(a[4..15] = false, a[0..2] = seMidval, a[3] = seMidmsb,
+          b[4..15] = true,  b[0..2] = seMidval, b[3] = seMidmsb,
+          out = LWout, sel = seMidmsb);
+
+    //Sign Extend BOT
+    SignExtend(LIMM[0..3] = rb, LIMM[4..7] = ra, out = seBOTout);
+
+    //SorL Mux
+    Mux16(a = LWout, b = seBOTout, out = SorLout, sel = SorLsel);
+
+    //enforce r[0] = 0 --- discrete chip kept the ra intact for readability. 
+    Nor4(in = ra, out = nor4);
+    Not(in = nor4, out = notZero);
+    And(a = notZero, b = RFwritesel, out = toRFload);
+
+    //RF reg
+    RegisterFile(rr1 = rb, rr2 = rc, wr = ra, wd = RFwdout, 
+                 rd1 = rd1, rd2 = rd2, load = toRFload);
+
+    //RD1 reg
+    RD1(in = rd1, out = rd1out, load = RD1writesel);
+
+    //RD2 reg
+    RD2(in = rd2, out = rd2out, load = RD2writesel);
+
+    //ALU1 Mux
+    Mux4Way16(a = PCout, b = false, c = rd1out, out = ALU1out, 
+              sel[0] = ALU10sel, sel[1] = ALU11sel);
+
+    //ALU2 Mux
+    Mux4Way16(a = rd2out, b[0] = true, c = SorLout, d = ALUoutputOut, 
+              out = ALU2out, sel[0] = ALU20sel, sel[1] = ALU21sel);
+
+    //ALU
+    ALU(a = ALU1out, b = ALU2out, sub = SUBsel, nor = NORsel, z = z, 
+        out = ALUout);
+
+    //ALUoutput reg
+    ALUoutput(in = ALUout, load = ALUoutwritesel, out = ALUoutputOut);
+
+    //Branch Mux
+    Mux4Way16(a = ALUout, b = rd1out, c = PCout, d = ALUoutputOut, sel[1] = ORmid, 
+              sel[0] = ORright, out = branchOut);
+
+    //Branch logic
+    And(a = BEsel, b = z, out = ANDright);
+    Not(in = z, out = notz);
+    And(a = BNsel, b = notz, out = ANDleft);
+    Or(a = ANDleft, b = ANDright, out = ORleft);
+    Or(a = JALsel, b = ORleft, out = ORright);
+    Or(a = BEsel, b = BNsel, out = ORmid);
+
+    //Halt Mux
+    Xor(a = HALTsel, b = PCwritesel, out = pcCtrl);
+
+    //CU
+    CU(opcode = opcode,
+       out1[0] = ALUoutwritesel,
+       out1[1] = NORsel, 
+       out1[2] = SUBsel, 
+       out1[3] = ALU21sel,
+       out1[4] = ALU11sel,
+       out1[5] = ALU10sel,
+       out1[6] = RFwritesel,
+       out1[7] = RFwdsel0,
+       out1[8] = Msrcsel,
+       out1[9] = PCwritesel,
+       out1[10] = JALsel,
+       out1[11] = BEsel,
+       out1[12] = BNsel,
+       out1[13] = SorLsel,
+       out1[13] = RD1writesel,
+       out1[13] = RD2writesel,
+       out1[14] = RFwdsel1,
+       out1[15] = LIsel,
+       out2[0] = LWsel,
+       out2[1] = MDRwritesel,
+       out2[2] = IRwritesel,
+       out2[2] = ALU20sel,
+       out2[3] = MWritesel,
+       out2[4] = HALTsel
+      );
+
+}

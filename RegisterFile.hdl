@@ -1,0 +1,60 @@
+/**
+ * Dual-ported register file of 16 registers, each 16-bit wide.  
+ * The register file (RF) can be seen as a 1D array of length 16, with
+ * indices 0 through 15, in which each memory location contains a 16-bit value.
+ *
+ * The chip supports three simultaneous I/O operations, namely 
+ * two read operations and one write operation, as follows:
+ *     Read:  rd1(t) = RF[rr1(t)](t)
+ *            rd2(t) = RF[rr2(t)](t)
+ *     Write: If load(t-1) == 1 
+ *            Then RF[wr(t-1)](t) = wd(t-1)
+ */
+
+CHIP RegisterFile {
+
+    IN  rr1[4],      // number of the first register to be read out
+        rr2[4],      // number of the second register to be read out
+        wr[4],       // number of the register to be written into
+        wd[16],      // value to be written
+        load;        // 1 if the value wd must be written to register number wr
+
+    OUT rd1[16],     // current value in register number rr1
+        rd2[16];     // current value in register number rr2
+
+    PARTS:
+    DMux(in = load, sel = wr[3], a = loadA, b = loadB);
+    DMux8Way(in = loadA, sel = wr[0..2], a = r0l, b = r1l, c = r2l, d = r3l, 
+             e = r4l, f = r5l, g = r6l, h = r7l);
+    DMux8Way(in = loadB, sel = wr[0..2], a = r8l, b = r9l, c = r10l, d = r11l,
+             e = r12l, f = r13l, g = r14l, h = r15l);
+
+    RegisterR0(in = wd, load = r0l, out = r0out);
+    RegisterR1(in = wd, load = r1l, out = r1out);
+    RegisterR2(in = wd, load = r2l, out = r2out);
+    RegisterR3(in = wd, load = r3l, out = r3out);
+    RegisterR4(in = wd, load = r4l, out = r4out);
+    RegisterR5(in = wd, load = r5l, out = r5out);
+    RegisterR6(in = wd, load = r6l, out = r6out);
+    RegisterR7(in = wd, load = r7l, out = r7out);
+    RegisterR8(in = wd, load = r8l, out = r8out);
+    RegisterR9(in = wd, load = r9l, out = r9out);
+    RegisterR10(in = wd, load = r10l, out = r10out);
+    RegisterR11(in = wd, load = r11l, out = r11out);
+    RegisterR12(in = wd, load = r12l, out = r12out);
+    RegisterR13(in = wd, load = r13l, out = r13out);
+    RegisterR14(in = wd, load = r14l, out = r14out);
+    RegisterR15(in = wd, load = r15l, out = r15out);
+
+    Mux8Way16(a = r0out, b = r1out, c = r2out, d = r3out, e = r4out, f = r5out, 
+              g = r6out, h = r7out, sel = rr1[0..2], out = rd1a);
+    Mux8Way16(a = r8out, b = r9out, c = r10out, d = r11out, e = r12out, 
+              f = r13out, g = r14out, h = r15out, sel = rr1[0..2], out = rd1b);
+    Mux16(a = rd1a, b = rd1b, sel = rr1[3], out = rd1);
+
+    Mux8Way16(a = r0out, b = r1out, c = r2out, d = r3out, e = r4out, f = r5out, 
+              g = r6out, h = r7out, sel = rr2[0..2], out = rd2a);
+    Mux8Way16(a = r8out, b = r9out, c = r10out, d = r11out, e = r12out, 
+              f = r13out, g = r14out, h = r15out, sel = rr2[0..2], out = rd2b);
+    Mux16(a = rd2a, b = rd2b, sel = rr2[3], out = rd2);
+}
